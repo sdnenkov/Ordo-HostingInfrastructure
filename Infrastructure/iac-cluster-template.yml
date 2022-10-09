@@ -1,0 +1,7 @@
+steps:
+  - task: AzureCLI@2
+    displayName: Create cluster resource group
+    azureSubscription: 'beta'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    

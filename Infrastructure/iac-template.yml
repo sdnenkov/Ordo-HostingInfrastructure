@@ -1,0 +1,10 @@
+- steps:
+
+- task: AzureCLI@2
+  displayName: Create networking hubs resource group
+  azureSubscription: beta
+  scriptType: bash
+  scriptLocation: inlineScript
+  inlineScript: '|
+    az deployment sub create --location 'uksouth' --template-file bicep/networks.bicep'
+  workingDirectory: 'Infrastructure/bicep'
