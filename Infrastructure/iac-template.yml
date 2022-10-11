@@ -6,5 +6,32 @@
   scriptType: bash
   scriptLocation: inlineScript
   inlineScript: '|
-    az deployment sub create --location 'uksouth' --template-file bicep/networks.bicep'
+    az deployment sub create --location 'uksouth' -f bicep/networks.bicep -p rgName=rg-enterprise-networking-hubs'
+  workingDirectory: 'Infrastructure/bicep'
+
+- task: AzureCLI@2
+  displayName: Create networking spoke resource group
+  azureSubscription: beta
+  scriptType: bash
+  scriptLocation: inlineScript
+  inlineScript: '|
+    az deployment sub create --location 'uksouth' -f bicep/networks.bicep --parameters rgName=rg-enterprise-networking-spokes'
+  workingDirectory: 'Infrastructure/bicep'
+
+- task: AzureCLI@2
+  displayName: Create hub resources
+  azureSubscription: beta
+  scriptType: bash
+  scriptLocation: inlineScript
+  inlineScript: '|
+    RESOURCEID_VNET_HUB=$(az deployment group show -g rg-enterprise-networking-hubs -n networking-hubs --location 'uksouth' -f bicep/hub_resources.bicep)'
+  workingDirectory: 'Infrastructure/bicep'
+
+  - task: AzureCLI@2
+  displayName: Create cluster spoke resources
+  azureSubscription: beta
+  scriptType: bash
+  scriptLocation: inlineScript
+  inlineScript: '|
+    RESOURCEIDS_NODE_POOL_SUBNET=$(az deployment group show -g rg-enterprise-networking-spokes -n networking-spokes -p hubVnetResourceId="$(RESOURCEID_VNET_HUB)" --query properties.outputs.nodepoolSubnetResourceIds.value -o json)'
   workingDirectory: 'Infrastructure/bicep'

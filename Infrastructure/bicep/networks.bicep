@@ -1,4 +1,4 @@
-param rgName string = 'rg-enterprise-networking-hubs'
+param rgName string
 param location string = 'uksouth'
 
 targetScope = 'subscription'
