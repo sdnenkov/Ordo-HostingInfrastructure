@@ -71,7 +71,7 @@
     TENANT_ID=$(az account tenant list --query [0].tenantId -o tsv)'
 
 - task: AzureCLI@2
-  displayName: Create cluster
+  displayName: Create main cluster
   azureSubscription: 'beta'
   scriptType: 'bash'
   scriptLocation: 'inlineScript'
