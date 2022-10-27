@@ -24,14 +24,64 @@
   scriptType: bash
   scriptLocation: inlineScript
   inlineScript: '|
-    RESOURCEID_VNET_HUB=$(az deployment group show -g rg-enterprise-networking-hubs -n networking-hubs --location 'uksouth' -f bicep/hub_resources.bicep)'
+    RESOURCEID_VNET_HUB=$(az deployment group create -g rg-enterprise-networking-hubs -n networking-hubs --location 'uksouth' -f bicep/hub.bicep)'
   workingDirectory: 'Infrastructure/bicep'
 
-  - task: AzureCLI@2
+- task: AzureCLI@2
   displayName: Create cluster spoke resources
   azureSubscription: beta
   scriptType: bash
   scriptLocation: inlineScript
   inlineScript: '|
-    RESOURCEIDS_NODE_POOL_SUBNET=$(az deployment group show -g rg-enterprise-networking-spokes -n networking-spokes -p hubVnetResourceId="$(RESOURCEID_VNET_HUB)" --query properties.outputs.nodepoolSubnetResourceIds.value -o json)'
+    az deployment group create -g rg-enterprise-networking-spokes -n networking-spokes -f bicep/cluster-spoke.bicep -p hubVnetResourceId="$(RESOURCEID_VNET_HUB)"'
   workingDirectory: 'Infrastructure/bicep'
+
+- task: AzureCLI@2
+  displayName: Create cluster spoke resources
+  azureSubscription: beta
+  scriptType: bash
+  scriptLocation: inlineScript
+  inlineScript: '|
+    RESOURCEIDS_NODE_POOL_SUBNET=$(az deployment group show -g rg-enterprise-networking-spokes -n networking-spokes --query properties.outputs.nodepoolSubnetResourceIds.value -o json)'
+
+- task: AzureCLI@2
+  displayName: Create cluster spoke resources
+  azureSubscription: beta
+  scriptType: bash
+  scriptLocation: inlineScript
+  inlineScript: '|
+    CLUSTER_VNET_RESOURCE_ID=$(az deployment group show -g rg-enterprise-networking-spokes -n networking-spokes --query properties.outputs.clusterVnetResourceId.value -o json)'
+
+- task: AzureCLI@2
+  displayName: Create cluster resource group
+  azureSubscription: 'beta'
+  scriptType: 'bash'
+  scriptLocation: 'inlineScript'
+  inlineScript: '|
+    az group create --location 'uksouth' -n rg-cluster'
+
+- task: AzureCLI@2
+  displayName: Get AD cluster admin object id
+  azureSubscription: 'beta'
+  scriptType: 'bash'
+  scriptLocation: 'inlineScript'
+  inlineScript: '|
+    AD_CLUSTER_ADMINS_OBJECT_ID=$(az ad group show -g cluster-admins --query id -o tsv)
+    AD_CLUSTER_READERS_OBJECT_ID=$(az ad group show -g cluster-ns-readers --query id -o tsv)
+    TENANT_ID=$(az account tenant list --query [0].tenantId -o tsv)'
+
+- task: AzureCLI@2
+  displayName: Create cluster
+  azureSubscription: 'beta'
+  scriptType: 'bash'
+  scriptLocation: 'inlineScript'
+  inlineScript: '|
+    az deployment group create -g rg-cluster -f cluster-stamp.bicep -p |
+      targetVnetResourceId="$(CLUSTER_VNET_RESOURCE_ID)" |
+      clusterAdminAadGroupObjectId="$(AD_CLUSTER_ADMINS_OBJECT_ID)" |
+      a0008NamespaceReaderAadGroupObjectId="$(AD_CLUSTER_READERS_OBJECT_ID)" |
+      k8sControlPlaneAuthorizationTenantId="$(TENANT_ID)" |
+      appGatewayListenerCertificate=$(cat appgw.pfx | base64 | tr -d '\n') |
+      aksIngressControllerCertificate=$(cat traefik-ingress-internal-aks-ingress-tls.crt | base64 | tr -d '\n') |
+      domainName='http://transport-prod.co.uk'
+    

@@ -1,5 +1,5 @@
 param location string = 'uksouth'
-param nodepoolSubnetResourceIds array
+// param nodepoolSubnetResourceIds array
 @description('Optional. A /24 to contain the regional firewall, management, and gateway subnet. Defaults to 10.200.0.0/24')
 @maxLength(18)
 @minLength(10)
@@ -222,12 +222,12 @@ resource vnetHub 'Microsoft.Network/virtualNetworks@2021-05-01' = {
 }
 
 // This holds IP addresses of known nodepool subnets in spokes.
-resource ipgNodepoolSubnet 'Microsoft.Network/ipGroups@2021-05-01' = {
-  name: 'ipg-${location}-AksNodepools'
-  location: location
-  properties: {
-    ipAddresses: [for nodepoolSubnetResourceId in nodepoolSubnetResourceIds: '${reference(nodepoolSubnetResourceId, '2020-05-01').addressPrefix}']
-  }
-}
+// resource ipgNodepoolSubnet 'Microsoft.Network/ipGroups@2021-05-01' = {
+//   name: 'ipg-${location}-AksNodepools'
+//   location: location
+//   properties: {
+//     ipAddresses: [for nodepoolSubnetResourceId in nodepoolSubnetResourceIds: '${reference(nodepoolSubnetResourceId, '2020-05-01').addressPrefix}']
+//   }
+// }
 
 output hubVnetId string = vnetHub.id
